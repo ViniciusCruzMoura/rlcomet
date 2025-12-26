@@ -1,6 +1,7 @@
 
 OBJECTS = build/main.o \
-	build/spaceship.o
+	build/spaceship.o \
+	build/sprite.o
 
 CC = gcc
 MAKE = make
@@ -15,6 +16,9 @@ INCLUDE_PATHS = -Ivendor/raylib/src
 LDFLAGS = -Lvendor/raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -lc
 
 all: executable
+
+build/sprite.o: src/sprite.c
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
 
 build/spaceship.o: src/spaceship.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)

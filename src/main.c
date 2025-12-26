@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <raylib.h>
 #include "game.h"
 #include "spaceship.h"
-#include <raylib.h>
+#include "sprite.h"
 
 #define ARRAY_COUNT(arr) (int32_t)(sizeof(arr) / sizeof(arr[0]))
 #define UNUSED __attribute__((unused))
@@ -27,6 +28,10 @@ int main(void)
 
     InitWindow(g.display_width, g.display_height, "Comet");
     SetTargetFPS(g.fps);
+
+    s.sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
+    s.sp.scale = (Vector2){2.0f, 2.0f};
+
     while (!g.display_should_close)
     {
         game_update();
@@ -70,6 +75,9 @@ uint32_t game_update(void)
             s.rotation, 
             WHITE
             );
+
+    sprite_set_position(&s.sp, (Vector2){s.x, s.y});
+    sprite_update(&s.sp);
 
     EndDrawing();
     return 0;
