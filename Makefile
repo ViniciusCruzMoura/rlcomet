@@ -1,7 +1,8 @@
 
 OBJECTS = build/main.o \
-	build/spaceship.o \
-	build/sprite.o
+	build/entity.o \
+	build/sprite.o \
+	build/camera.o
 
 CC = gcc
 MAKE = make
@@ -17,10 +18,13 @@ LDFLAGS = -Lvendor/raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -lc
 
 all: executable
 
+build/camera.o: src/camera.c
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
+
 build/sprite.o: src/sprite.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
 
-build/spaceship.o: src/spaceship.c
+build/entity.o: src/entity.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
 
 build/main.o: src/main.c

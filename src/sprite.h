@@ -25,7 +25,8 @@ struct sprite {
 struct sprite sprite_init(const char* filepath, uint32_t rows, uint32_t *framesPerRow);
 void sprite_set_animation_state(struct sprite* sp, uint32_t row);
 void sprite_update(struct sprite *sp);
-void sprite_set_position(struct sprite* sp, Vector2 newPosition);
+void sprite_set_position(struct sprite* sp, Vector2 new_position);
+void sprite_set_rotation(struct sprite* sp, float rotation);
 void sprite_flip(struct sprite* sp);
 
 #endif //SPRITE_H

@@ -73,12 +73,17 @@ void sprite_set_animation_state(struct sprite* sp, uint32_t row)
     }
 }
 
-void sprite_set_position(struct sprite* sp, Vector2 newPosition)
+void sprite_set_position(struct sprite* sp, Vector2 new_position)
 {
-    sp->position = newPosition;
+    sp->position = new_position;
 }
 
 void sprite_flip(struct sprite* sp)
 {
     sp->frameRec.width *= -1;
+}
+
+void sprite_set_rotation(struct sprite* sp, float rotation)
+{
+    sp->rotation = rotation;
 }

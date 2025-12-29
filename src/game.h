@@ -9,6 +9,7 @@ struct game_state {
     uint32_t display_height;
     uint32_t current_scene;
     uint32_t display_should_close;
+    bool is_paused;
 };
 
 struct game_state game_init(void);
