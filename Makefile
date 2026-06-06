@@ -2,6 +2,7 @@
 OBJECTS = build/main.o \
 	build/entity.o \
 	build/sprite.o \
+	build/common.o \
 	build/camera.o
 
 CC = gcc
@@ -16,7 +17,13 @@ INCLUDE_PATHS = -Ivendor/raylib/src
 
 LDFLAGS = -Lvendor/raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -lc
 
-all: executable
+all: build/ executable
+
+build/:
+	@mkdir -p build/
+
+build/common.o: src/common.c
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
 
 build/camera.o: src/camera.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
@@ -41,10 +48,15 @@ libraylib.a: vendor/raylib/src
 .PHONY: clean clean_vendor vendor
 
 clean:
-	@rm -f $(OBJECTS)
+	@rm $(OBJECTS)
 
 clean_vendor:
 	$(MAKE) -C vendor/raylib/src clean
+
+clean_all:
+	@rm -rf build/
+	@rm -rf vendor/
+	@rm executable
 
 vendor:
 	if [ ! -d "vendor/raylib" ]; then git clone -b 5.5 --depth=1 https://github.com/raysan5/raylib.git vendor/raylib; fi

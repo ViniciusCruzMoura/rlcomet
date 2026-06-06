@@ -67,7 +67,7 @@ void camera_entity_trigger_camera_shake(struct camera_entity *gcamera, float int
     gcamera->shake_intensity = intensity;
     gcamera->shake_duration = duration;
     gcamera->shake_timer = duration;
-    gcamera->is_shaking = true; // Start shaking effect
+    gcamera->is_shaking = true; //start shaking effect
 }
 
 void camera_entity_set_target_entity(struct camera_entity *gcamera, struct entity *target_entity)

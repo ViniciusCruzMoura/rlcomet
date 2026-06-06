@@ -38,7 +38,7 @@ void sprite_update(struct sprite *sp)
 {
     sp->framesCounter++;
 
-    if (sp->framesCounter >= (60/sp->framesSpeed))
+    if ( sp->framesSpeed > 0 && sp->framesCounter >= (60/sp->framesSpeed))
     {
         sp->framesCounter = 0;
         sp->currentFrame++;
