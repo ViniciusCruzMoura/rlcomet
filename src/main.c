@@ -10,15 +10,15 @@
 #define ARRAY_COUNT(arr) (int32_t)(sizeof(arr) / sizeof(arr[0]))
 #define UNUSED __attribute__((unused))
 
-int max_obj;
+uint32_t max_obj;
 struct entity obj[MAX_OBJECTS];
 struct game_state g;
 struct camera_entity c;
 objid player;
 
-objid alloc_objid(int type)
+objid alloc_objid(uint32_t type)
 {
-    int i;
+    uint32_t i;
     for (i=1; i < MAX_OBJECTS; ++i) {
         if (!obj[i].is_active || obj[i].type == O_none) {
             memset(&obj[i], 0, sizeof(obj[0]));
@@ -200,7 +200,7 @@ uint32_t game_update(void)
         if (!g.is_paused) {
             BeginMode2D(c.camera);
                 camera_entity_update(&c);
-                for (int i = 1; i < max_obj; ++i) {
+                for (uint32_t i = 1; i <= max_obj; ++i) {
                     if (obj[i].type == O_none) continue;
                     entity_update(&obj[i]);
                 }

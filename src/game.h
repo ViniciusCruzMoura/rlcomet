@@ -7,9 +7,9 @@
 
 #define MAX_OBJECTS 16384
 
-typedef int objid;
+typedef uint32_t objid;
 
-extern int max_obj;
+extern uint32_t max_obj;
 extern struct entity obj[MAX_OBJECTS];
 extern struct game_state g;
 extern struct camera_entity c;
@@ -29,7 +29,7 @@ struct game_state game_init(void);
 uint32_t game_update(void);
 uint32_t game_key_down(void);
 
-objid alloc_objid(int type);
+objid alloc_objid(uint32_t type);
 void free_objid(objid id);
 
 
