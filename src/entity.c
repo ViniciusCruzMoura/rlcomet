@@ -1,7 +1,6 @@
 #include "game.h"
 #include "entity.h"
 #include "sprite.h"
-#include "common.h"
 #include <raylib.h>
 #include <raymath.h>
 #include <stdio.h>

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "entity.h"
 #include "camera.h"
+#include "console.h"
 
 #define MAX_OBJECTS 16384
 
@@ -15,6 +16,8 @@ extern struct game_state g;
 extern struct camera_entity c;
 extern objid player;
 
+extern struct console cmd;
+
 struct game_state {
     uint32_t fps;
     uint32_t display_width;
@@ -22,7 +25,7 @@ struct game_state {
     uint32_t current_scene;
     uint32_t display_should_close;
     bool is_paused;
-    bool enable_traceback;
+    bool is_console_enabled;
 };
 
 struct game_state game_init(void);
@@ -32,5 +35,6 @@ uint32_t game_key_down(void);
 objid alloc_objid(uint32_t type);
 void free_objid(objid id);
 
+uint32_t rand_between(uint32_t min, uint32_t max);
 
 #endif //GAME_H

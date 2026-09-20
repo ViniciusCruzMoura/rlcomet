@@ -2,7 +2,8 @@
 OBJECTS = build/main.o \
 	build/entity.o \
 	build/sprite.o \
-	build/common.o \
+	build/console.o \
+	build/darray.o \
 	build/camera.o
 
 CC = gcc
@@ -13,16 +14,19 @@ CFLAGS = -std=c99 -Wall -Wno-missing-braces -Wunused-result -D_DEFAULT_SOURCE \
 	-Wold-style-definition -Wredundant-decls -Wnested-externs -Wmissing-include-dirs \
     -s -O2 -D_DEFAULT_SOURCE -Wl,-rpath
 
-INCLUDE_PATHS = -Ivendor/raylib/src
+INCLUDE_PATHS = -Ithirdparty/raylib/src
 
-LDFLAGS = -Lvendor/raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -lc
+LDFLAGS = -Lthirdparty/raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -lc
 
 all: build/ executable
 
 build/:
 	@mkdir -p build/
 
-build/common.o: src/common.c
+build/darray.o: src/darray.c
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
+
+build/console.o: src/console.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
 
 build/camera.o: src/camera.c
@@ -37,26 +41,24 @@ build/entity.o: src/entity.c
 build/main.o: src/main.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
 
-# build the executable
 executable: $(OBJECTS) libraylib.a
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
-# build raylib vendor
-libraylib.a: vendor/raylib/src
+libraylib.a: thirdparty/raylib/src
 	$(MAKE) -C $< PLATFORM=PLATFORM_DESKTOP
 
-.PHONY: clean clean_vendor vendor
+.PHONY: clean clean_thirdparty thirdparty
 
 clean:
 	@rm $(OBJECTS)
 
-clean_vendor:
-	$(MAKE) -C vendor/raylib/src clean
+clean_thirdparty:
+	$(MAKE) -C thirdparty/raylib/src clean
 
 clean_all:
 	@rm -rf build/
-	@rm -rf vendor/
+	@rm -rf thirdparty/
 	@rm executable
 
-vendor:
-	if [ ! -d "vendor/raylib" ]; then git clone -b 5.5 --depth=1 https://github.com/raysan5/raylib.git vendor/raylib; fi
+thirdparty:
+	if [ ! -d "thirdparty/raylib" ]; then git clone -b 5.5 --depth=1 https://github.com/raysan5/raylib.git thirdparty/raylib; fi

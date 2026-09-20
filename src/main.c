@@ -3,12 +3,19 @@
 #include "game.h"
 #include "entity.h"
 #include "camera.h"
-#include "common.h"
 #include <assert.h>
-#include <string.h>
+
+#define STRING_BUILDER_IMPLEMENTATION
+#include "sb.h"
 
 #define ARRAY_COUNT(arr) (int32_t)(sizeof(arr) / sizeof(arr[0]))
 #define UNUSED __attribute__((unused))
+
+uint32_t rand_between(uint32_t min, uint32_t max) {
+    return (uint32_t)(rand() % (max - min + 1)) + min;
+}
+
+struct console cmd;
 
 uint32_t max_obj;
 struct entity obj[MAX_OBJECTS];
@@ -40,102 +47,22 @@ void free_objid(objid id)
     obj[id].type = O_none;
 }
 
-enum {
-    LT_ERROR,
-    LT_INFO,
-    LT_WARNING,
-};
-
-typedef struct LogTrace {
-    int level;
-    char* message;
-} LogTrace;
-
-typedef struct Vector {
-    void** itens;
-    int used;
-    int capacity;
-} Vector;
-
-void append(Vector* v, void* item)
+void draw_background_grid(void)
 {
-    if (v->used >= v->capacity) {
-        v->capacity += 256;
-        v->itens = realloc(v->itens, v->capacity*sizeof(v->itens));
+    uint32_t square_size = 40;
+    for (int i = 0; i < g.display_width/square_size + 1; i++)
+    {
+        DrawLineV((Vector2){(float)square_size*i, 0}, (Vector2){ (float)square_size*i, (float)g.display_height}, LIGHTGRAY);
     }
-    v->itens[v->used] = item;
-    ++v->used;
-}
-
-void* at(Vector* v, int i)
-{
-    if (i <= v->used && i >= 0) {
-        return v->itens[i];
+    for (int i = 0; i < g.display_height /square_size + 1; i++)
+    {
+        DrawLineV((Vector2){0, (float)square_size*i}, (Vector2){ (float)g.display_width, (float)square_size*i}, LIGHTGRAY);
     }
-    return NULL;
-}
-
-void remove_at(Vector* v, int idx)
-{
-    if (idx <= v->used && idx >=0) {
-        for(int i = idx; i < v->used; ++i) {
-            v->itens[i] = v->itens[i+1];
-        }
-        --v->used;
-    }
-}
-
-void traceback(void* trace, int level, char* msg)
-{
-    LogTrace* log = malloc(sizeof(LogTrace));
-    log->level = level;
-    log->message = msg;
-    append(trace, log);
-}
-
-void draw_traceback(Vector* trace)
-{
-    if (trace != NULL) {
-        for(int i=0; i<trace->used; ++i) {
-            LogTrace* log = at(trace, i);
-            if (log != NULL) {
-                switch(log->level) {
-                    case LT_INFO:
-                        DrawText(log->message, 1, 20*(i+1), 20, WHITE);
-                        break;
-                    case LT_WARNING:
-                        DrawText(log->message, 1, 20*(i+1), 20, YELLOW);
-                        break;
-                    case LT_ERROR:
-                        DrawText(log->message, 1, 20*(i+1), 20, RED);
-                        break;
-                }
-            }
-//             if (i>30) remove_at(trace, i);
-        }
-    }
-}
-
-Vector trace;
-
-void draw_background_grade(void)
-{
-    if (g.enable_traceback) {
-        uint32_t square_size = 40;
-        for (int i = 0; i < g.display_width/square_size + 1; i++)
+    for (int i = 0; i < g.display_width/square_size; i++)
+    {
+        for (int j = 0; j < g.display_height/square_size; j++)
         {
-            DrawLineV((Vector2){(float)square_size*i, 0}, (Vector2){ (float)square_size*i, (float)g.display_height}, LIGHTGRAY);
-        }
-        for (int i = 0; i < g.display_height /square_size + 1; i++)
-        {
-            DrawLineV((Vector2){0, (float)square_size*i}, (Vector2){ (float)g.display_width, (float)square_size*i}, LIGHTGRAY);
-        }
-        for (int i = 0; i < g.display_width/square_size; i++)
-        {
-            for (int j = 0; j < g.display_height/square_size; j++)
-            {
-                DrawText(TextFormat("[%i,%i]", i, j), 10 + square_size*i, 15 + square_size*j, 10, LIGHTGRAY);
-            }
+            DrawText(TextFormat("[%i,%i]", i, j), 10 + square_size*i, 15 + square_size*j, 10, LIGHTGRAY);
         }
     }
 }
@@ -156,7 +83,17 @@ int main(void)
     pobj->sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
     pobj->sp.scale = (Vector2){2.0f, 2.0f};
 
-    trace = (Vector) { .used=0, .capacity=0 };
+    // TODO 202609201421 make a contructor function?
+    // console area need be dynamic so if the screen
+    // change, the size need change too
+    cmd = (struct console) {
+        .area = (Rectangle){.x=1, .y=20, .width=GetScreenWidth()/2, .height=GetScreenHeight()/2},
+        .input_area = {1, GetScreenHeight()/2 + 20, GetScreenWidth()/2, 24},
+        .scrollbar = {GetScreenWidth()/2, 20, 10, GetScreenHeight()/2},
+        .rows = 20,
+        .row_height = 20,
+        .last_used = -1
+    };
 
     while (!g.display_should_close)
     {
@@ -204,11 +141,21 @@ uint32_t game_update(void)
                     if (obj[i].type == O_none) continue;
                     entity_update(&obj[i]);
                 }
-                draw_background_grade();
+                if (g.is_console_enabled) {
+                    draw_background_grid();
+                }
             EndMode2D();
         }
-        if (g.enable_traceback) {
-            draw_traceback(&trace);
+
+        if (g.is_console_enabled) {
+            console_update(&cmd);
+            if (cmd.command_ready) {
+                //TODO 202609192245 execute command line from console
+                //TODO 202609201607 implement a argument parser
+            }
+        }
+        if (g.is_console_enabled) {
+            console_draw(&cmd);
         }
     EndDrawing();
     return 0;
@@ -221,15 +168,15 @@ uint32_t game_key_down(void)
     if (!g.is_paused) entity_set_action(pobj, key);
     switch (key) {
         case KEY_P:
-            traceback(&trace, LT_INFO, stringf("Game was PAUSED"));
+            console_text_append(&cmd.trace, LT_INFO, sb_stringf("Game was PAUSED"));
             g.is_paused = !g.is_paused;
             break;
         case KEY_GRAVE:
-            traceback(&trace, LT_WARNING, stringf("Enabled the traceback log"));
-            g.enable_traceback = !g.enable_traceback;
+            console_text_append(&cmd.trace, LT_WARNING, sb_stringf("Enabled the console log"));
+            g.is_console_enabled = !g.is_console_enabled;
             break;
         case KEY_M:
-            traceback(&trace, LT_ERROR, stringf("open menu %d", trace.used));
+            console_text_append(&cmd.trace, LT_ERROR, sb_stringf("open menu %d", cmd.trace.used));
             camera_entity_trigger_camera_shake(&c, 1.0f, 300.0f);
             pobj->speed = (Vector2) {0,0};
             g.current_scene = 1;
@@ -237,3 +184,4 @@ uint32_t game_key_down(void)
     }
     return 0;
 }
+
