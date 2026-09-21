@@ -1,10 +1,13 @@
 
-OBJECTS = build/main.o \
-	build/entity.o \
-	build/sprite.o \
-	build/console.o \
-	build/darray.o \
-	build/camera.o
+SOURCES = \
+	src/main.c \
+	src/entity.c \
+	src/sprite.c \
+	src/console.c \
+	src/darray.c \
+	src/camera.c
+
+OBJECTS = $(SOURCES:src/%.c=build/%.o)
 
 CC = gcc
 MAKE = make
@@ -16,49 +19,41 @@ CFLAGS = -std=c99 -Wall -Wno-missing-braces -Wunused-result -D_DEFAULT_SOURCE \
 
 INCLUDE_PATHS = -Ithirdparty/raylib/src
 
-LDFLAGS = -Lthirdparty/raylib/src -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -lc
+LDFLAGS = -Lthirdparty/raylib/src -lraylib
+ifeq ($(OS),Windows_NT)
+	LDFLAGS += -lopengl32 -lgdi32 -lwinmm
+else
+	LDFLAGS += -lGL -lm -lpthread -ldl -lrt -lX11 -lc
+endif
 
-all: build/ executable
+EXE := 
+ifeq ($(OS),Windows_NT)
+	EXE := .exe
+endif
 
-build/:
-	@mkdir -p build/
+.PHONY: clean thirdparty
+all: executable$(EXE)
 
-build/darray.o: src/darray.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
+build/%.o: src/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCLUDE_PATHS) -c $< -o $@
 
-build/console.o: src/console.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
-
-build/camera.o: src/camera.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
-
-build/sprite.o: src/sprite.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
-
-build/entity.o: src/entity.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
-
-build/main.o: src/main.c
-	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS)
-
-executable: $(OBJECTS) libraylib.a
+executable$(EXE): $(OBJECTS) thirdparty/raylib/src/libraylib.a
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
-libraylib.a: thirdparty/raylib/src
+thirdparty/raylib/src/libraylib.a: thirdparty/raylib/src
 	$(MAKE) -C $< PLATFORM=PLATFORM_DESKTOP
 
-.PHONY: clean clean_thirdparty thirdparty
+thirdparty/raylib/src/Makefile:
+	git clone --branch 5.5 --depth 1 https://github.com/raysan5/raylib.git thirdparty/raylib
+
+thirdparty: thirdparty/raylib/src/Makefile
 
 clean:
 	@rm $(OBJECTS)
 
-clean_thirdparty:
-	$(MAKE) -C thirdparty/raylib/src clean
-
 clean_all:
 	@rm -rf build/
 	@rm -rf thirdparty/
-	@rm executable
+	@rm -f executable$(EXE)
 
-thirdparty:
-	if [ ! -d "thirdparty/raylib" ]; then git clone -b 5.5 --depth=1 https://github.com/raysan5/raylib.git thirdparty/raylib; fi

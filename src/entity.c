@@ -59,9 +59,8 @@ uint32_t entity_act_move_down(struct entity *s)
 
 uint32_t entity_act_shoot_missle(struct entity *s)
 {
-    objid bullet = alloc_objid(O_bullet);
-    struct entity *o = &obj[bullet];
-    o->is_active = true;
+    struct entity *o = alloc_obj(O_bullet);
+    if (!o) return 0;
     o->position = (Vector2){
         rand_between(s->sp.position.x, s->sp.position.x + 300.0f),
         rand_between(s->sp.position.y, s->sp.position.y + 300.0f),
@@ -110,11 +109,7 @@ void entity_update(struct entity *s)
             DrawCircleV(s->position, 16.0f, YELLOW);
             DrawCircleV(s->position, 16.0f - 1, WHITE);
 
-            //if (s->lifetime <= 0) free_objid(i);
-            if (s->lifetime <= 0) {
-                s->is_active = 0;
-                s->type = O_none;
-            }
+            if (s->lifetime <= 0) free_obj(s);
 
             break;
         case O_enemy:

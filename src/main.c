@@ -17,34 +17,36 @@ uint32_t rand_between(uint32_t min, uint32_t max) {
 
 struct console cmd;
 
-uint32_t max_obj;
-struct entity obj[MAX_OBJECTS];
+struct darray obj;
 struct game_state g;
 struct camera_entity c;
-objid player;
+struct entity *player;
 
-objid alloc_objid(uint32_t type)
+struct entity *alloc_obj(uint32_t type)
 {
-    uint32_t i;
-    for (i=1; i < MAX_OBJECTS; ++i) {
-        if (!obj[i].is_active || obj[i].type == O_none) {
-            memset(&obj[i], 0, sizeof(obj[0]));
-
-            obj[i].is_active = 1;
-            obj[i].type = type;
-
-            if (i > max_obj) max_obj = i;
-            return i;
+    struct entity *o;
+    for (int i = 0; i < obj.used; ++i) {
+        o = darray_at(&obj, i);
+        if (!o->is_active || o->type == O_none) {
+            *o = entity_init(type);
+            return o;
         }
     }
-    assert(0);
-    return 0;
+
+    o = malloc(sizeof *o);
+    if (!o) return NULL;
+    *o = entity_init(type);
+    if (!darray_append(&obj, o)) {
+        free(o);
+        return NULL;
+    }
+    return o;
 }
 
-void free_objid(objid id)
+void free_obj(struct entity *o)
 {
-    obj[id].is_active = 0;
-    obj[id].type = O_none;
+    o->is_active = 0;
+    o->type = O_none;
 }
 
 void draw_background_grid(void)
@@ -76,12 +78,11 @@ int main(void)
     
     c = camera_entity_init((Vector2){g.display_width, g.display_height});
     
-    player = alloc_objid(O_player);
-    obj[player] = entity_init(O_player);
-    struct entity *pobj = &obj[player];
-    camera_entity_set_target_entity(&c, pobj);
-    pobj->sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
-    pobj->sp.scale = (Vector2){2.0f, 2.0f};
+    player = alloc_obj(O_player);
+    assert(player);
+    camera_entity_set_target_entity(&c, player);
+    player->sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
+    player->sp.scale = (Vector2){2.0f, 2.0f};
 
     // TODO 202609201421 make a contructor function?
     // console area need be dynamic so if the screen
@@ -102,6 +103,8 @@ int main(void)
     
     CloseWindow();
 
+    for (int i = 0; i < obj.used; ++i) free(darray_at(&obj, i));
+    darray_free(&obj);
     return 0;
 }
 
@@ -137,9 +140,8 @@ uint32_t game_update(void)
         if (!g.is_paused) {
             BeginMode2D(c.camera);
                 camera_entity_update(&c);
-                for (uint32_t i = 1; i <= max_obj; ++i) {
-                    if (obj[i].type == O_none) continue;
-                    entity_update(&obj[i]);
+                for (int i = 0; i < obj.used; ++i) {
+                    entity_update(darray_at(&obj, i));
                 }
                 if (g.is_console_enabled) {
                     draw_background_grid();
@@ -163,9 +165,8 @@ uint32_t game_update(void)
 
 uint32_t game_key_down(void)
 {
-    struct entity *pobj = &obj[player];
     int key = GetKeyPressed();
-    if (!g.is_paused) entity_set_action(pobj, key);
+    if (!g.is_paused) entity_set_action(player, key);
     switch (key) {
         case KEY_P:
             console_text_append(&cmd.trace, LT_INFO, sb_stringf("Game was PAUSED"));
@@ -178,10 +179,9 @@ uint32_t game_key_down(void)
         case KEY_M:
             console_text_append(&cmd.trace, LT_ERROR, sb_stringf("open menu %d", cmd.trace.used));
             camera_entity_trigger_camera_shake(&c, 1.0f, 300.0f);
-            pobj->speed = (Vector2) {0,0};
+            player->speed = (Vector2) {0,0};
             g.current_scene = 1;
             break;
     }
     return 0;
 }
-

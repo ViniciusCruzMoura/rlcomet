@@ -5,16 +5,12 @@
 #include "entity.h"
 #include "camera.h"
 #include "console.h"
+#include "darray.h"
 
-#define MAX_OBJECTS 16384
-
-typedef uint32_t objid;
-
-extern uint32_t max_obj;
-extern struct entity obj[MAX_OBJECTS];
+extern struct darray obj;
 extern struct game_state g;
 extern struct camera_entity c;
-extern objid player;
+extern struct entity *player;
 
 extern struct console cmd;
 
@@ -32,8 +28,8 @@ struct game_state game_init(void);
 uint32_t game_update(void);
 uint32_t game_key_down(void);
 
-objid alloc_objid(uint32_t type);
-void free_objid(objid id);
+struct entity *alloc_obj(uint32_t type);
+void free_obj(struct entity *o);
 
 uint32_t rand_between(uint32_t min, uint32_t max);
 
