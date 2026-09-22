@@ -87,12 +87,15 @@ void entity_update(struct entity *s)
 {
     switch(s->type) {
         case O_player:
+            // TODO 202609212108 create a entity_player_update()
+            // to handle player logics/tick
             sprite_set_position(&s->sp, (Vector2){s->position.x, s->position.y});
             sprite_set_rotation(&s->sp, s->rotation);
             sprite_update(&s->sp);
             break;
         case O_bullet:
-
+            
+            // TODO 202609212109 have your own *_update() function
             if (s->lifetime > 0) --s->lifetime;
 
             if (rand_between(0, 1) > 0) {

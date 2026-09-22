@@ -18,7 +18,7 @@ struct game_state {
     uint32_t fps;
     uint32_t display_width;
     uint32_t display_height;
-    uint32_t current_scene;
+    uint32_t current_window;
     uint32_t display_should_close;
     bool is_paused;
     bool is_console_enabled;

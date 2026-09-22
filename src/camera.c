@@ -27,26 +27,26 @@ void camera_entity_update(struct camera_entity *gcamera)
     Vector2 target_position = gcamera->follow_target_entity->position;
 
     if (target_position.x < gcamera->camera.target.x - gcamera->movement_bounds.width / 2) {
-        gcamera->camera.target.x -= abs(gcamera->follow_target_entity->speed.x) + 0.2f;
+        gcamera->camera.target.x -= abs((uint32_t)gcamera->follow_target_entity->speed.x) + 0.2f;
     } else if (target_position.x > gcamera->camera.target.x + gcamera->movement_bounds.width / 2) {
-        gcamera->camera.target.x += abs(gcamera->follow_target_entity->speed.x) + 0.2f;
+        gcamera->camera.target.x += abs((uint32_t)gcamera->follow_target_entity->speed.x) + 0.2f;
     } 
     if (target_position.y < gcamera->camera.target.y - gcamera->movement_bounds.height / 2) {
-        gcamera->camera.target.y -= abs(gcamera->follow_target_entity->speed.y) + 0.2f;
+        gcamera->camera.target.y -= abs((uint32_t)gcamera->follow_target_entity->speed.y) + 0.2f;
     } else if (target_position.y > gcamera->camera.target.y + gcamera->movement_bounds.height / 2) {
-        gcamera->camera.target.y += abs(gcamera->follow_target_entity->speed.y) + 0.2f;
+        gcamera->camera.target.y += abs((uint32_t)gcamera->follow_target_entity->speed.y) + 0.2f;
     } 
 
-    if (abs(gcamera->follow_target_entity->speed.y) == 0 && gcamera->camera.target.y > target_position.y) {
+    if (abs((uint32_t)gcamera->follow_target_entity->speed.y) == 0 && gcamera->camera.target.y > target_position.y) {
         gcamera->camera.target.y -= 2;
     }
-    if (abs(gcamera->follow_target_entity->speed.x) == 0 && gcamera->camera.target.y < target_position.y) {
+    if (abs((uint32_t)gcamera->follow_target_entity->speed.x) == 0 && gcamera->camera.target.y < target_position.y) {
         gcamera->camera.target.y += 2;
     }
-    if (abs(gcamera->follow_target_entity->speed.x) == 0 && gcamera->camera.target.x > target_position.x) {
+    if (abs((uint32_t)gcamera->follow_target_entity->speed.x) == 0 && gcamera->camera.target.x > target_position.x) {
         gcamera->camera.target.x -= 2;
     }
-    if (abs(gcamera->follow_target_entity->speed.x) == 0 && gcamera->camera.target.x < target_position.x) {
+    if (abs((uint32_t)gcamera->follow_target_entity->speed.x) == 0 && gcamera->camera.target.x < target_position.x) {
         gcamera->camera.target.x += 2;
     }
 

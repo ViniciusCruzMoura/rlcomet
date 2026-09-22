@@ -12,11 +12,15 @@ enum {
 };
 
 struct entity {
+    // TODO 202609212114 it will predefine the object/sprite behaviour
+    // so maybe is better use var name behaviour
     uint32_t type;
     bool is_active;
+    // TODO 202609212113 is_visible; it will be useful for event block
     Vector2 position;
     Vector2 speed;
     float rotation;
+    // TODO 202609212138 if dont have sprite load a default one
     struct sprite sp;
     uint32_t lifetime;
 };

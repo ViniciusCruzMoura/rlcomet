@@ -8,6 +8,9 @@
 #define STRING_BUILDER_IMPLEMENTATION
 #include "sb.h"
 
+#define PMEM_USAGE_IMPLEMENTATION
+#include "pmem_usage.h"
+
 #define ARRAY_COUNT(arr) (int32_t)(sizeof(arr) / sizeof(arr[0]))
 #define UNUSED __attribute__((unused))
 
@@ -16,12 +19,12 @@ uint32_t rand_between(uint32_t min, uint32_t max) {
 }
 
 struct console cmd;
-
 struct darray obj;
 struct game_state g;
 struct camera_entity c;
 struct entity *player;
 
+// TODO 202609212028 rename to entity_alloc(uint32_t type)
 struct entity *alloc_obj(uint32_t type)
 {
     struct entity *o;
@@ -81,6 +84,7 @@ int main(void)
     player = alloc_obj(O_player);
     assert(player);
     camera_entity_set_target_entity(&c, player);
+    // TODO 202609212036 create a assets manager
     player->sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
     player->sp.scale = (Vector2){2.0f, 2.0f};
 
@@ -91,7 +95,7 @@ int main(void)
         .area = (Rectangle){.x=1, .y=20, .width=GetScreenWidth()/2, .height=GetScreenHeight()/2},
         .input_area = {1, GetScreenHeight()/2 + 20, GetScreenWidth()/2, 24},
         .scrollbar = {GetScreenWidth()/2, 20, 10, GetScreenHeight()/2},
-        .rows = 20,
+        .rows = 18,
         .row_height = 20,
         .last_used = -1
     };
@@ -114,7 +118,7 @@ struct game_state game_init(void)
         .fps = 60,
         .display_width = 1280,
         .display_height = 720,
-        .current_scene = 1,
+        .current_window = 1,
         .display_should_close = 0,
         .is_paused = false,
     };
@@ -128,7 +132,7 @@ uint32_t game_update(void)
         g.display_should_close = WindowShouldClose();
         game_key_down();
 
-        switch (g.current_scene) {
+        switch (g.current_window) {
             case 1:
                 DrawText("SCENE : MENU", 0, 0, 20, RAYWHITE);
                 break;
@@ -152,12 +156,24 @@ uint32_t game_update(void)
         if (g.is_console_enabled) {
             console_update(&cmd);
             if (cmd.command_ready) {
-                //TODO 202609192245 execute command line from console
-                //TODO 202609201607 implement a argument parser
+                // TODO 202609192245 execute command line from console
+                // TODO 202609201607 implement a argument parser
+                // TODO 202609212058 add a fps_enabled command 
+                // to show fps and pmem usage
+                // TODO 202609212101 add command to show all collisions
+                // and invisible event blocks
             }
         }
         if (g.is_console_enabled) {
             console_draw(&cmd);
+        }
+
+        if (0) {
+            char text[164];
+            uint64_t bytes = pmem_usage();
+            double megabytes = (double)bytes / 1024.0 / 1024.0;
+            snprintf(text, sizeof(text), "Memory usage: %.2f MB", megabytes);
+            DrawText(text, 40, 40, 24, RED);
         }
     EndDrawing();
     return 0;
@@ -166,22 +182,33 @@ uint32_t game_update(void)
 uint32_t game_key_down(void)
 {
     int key = GetKeyPressed();
-    if (!g.is_paused) entity_set_action(player, key);
+
+    // TODO 202609212125 always execute console keyboard logic first
     switch (key) {
-        case KEY_P:
-            console_text_append(&cmd.trace, LT_INFO, sb_stringf("Game was PAUSED"));
-            g.is_paused = !g.is_paused;
-            break;
         case KEY_GRAVE:
-            console_text_append(&cmd.trace, LT_WARNING, sb_stringf("Enabled the console log"));
             g.is_console_enabled = !g.is_console_enabled;
+            //g.is_paused = !g.is_paused;
             break;
-        case KEY_M:
-            console_text_append(&cmd.trace, LT_ERROR, sb_stringf("open menu %d", cmd.trace.used));
-            camera_entity_trigger_camera_shake(&c, 1.0f, 300.0f);
-            player->speed = (Vector2) {0,0};
-            g.current_scene = 1;
-            break;
+    }
+
+    if (!g.is_paused && !g.is_console_enabled) {
+        entity_set_action(player, key);
+    }
+
+    // TODO 202609212121 disable others input when console is open
+    if (!g.is_console_enabled) {
+        switch (key) {
+            case KEY_P:
+                console_text_append(&cmd.trace, LT_INFO, sb_stringf("Game was PAUSED"));
+                g.is_paused = !g.is_paused;
+                break;
+            case KEY_M:
+                console_text_append(&cmd.trace, LT_ERROR, sb_stringf("open menu %d", cmd.trace.used));
+                camera_entity_trigger_camera_shake(&c, 1.0f, 300.0f);
+                player->speed = (Vector2) {0,0};
+                g.current_window = 1;
+                break;
+        }
     }
     return 0;
 }
