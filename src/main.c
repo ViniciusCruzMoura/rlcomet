@@ -8,7 +8,6 @@
 #define STRING_BUILDER_IMPLEMENTATION
 #include "sb.h"
 
-#define PMEM_USAGE_IMPLEMENTATION
 #include "pmem_usage.h"
 
 #define ARRAY_COUNT(arr) (int32_t)(sizeof(arr) / sizeof(arr[0]))
@@ -19,38 +18,10 @@ uint32_t rand_between(uint32_t min, uint32_t max) {
 }
 
 struct console cmd;
-struct darray obj;
+struct entity *obj;
 struct game_state g;
 struct camera_entity c;
-struct entity *player;
-
-// TODO 202609212028 rename to entity_alloc(uint32_t type)
-struct entity *alloc_obj(uint32_t type)
-{
-    struct entity *o;
-    for (int i = 0; i < obj.used; ++i) {
-        o = darray_at(&obj, i);
-        if (!o->is_active || o->type == O_none) {
-            *o = entity_init(type);
-            return o;
-        }
-    }
-
-    o = malloc(sizeof *o);
-    if (!o) return NULL;
-    *o = entity_init(type);
-    if (!darray_append(&obj, o)) {
-        free(o);
-        return NULL;
-    }
-    return o;
-}
-
-void free_obj(struct entity *o)
-{
-    o->is_active = 0;
-    o->type = O_none;
-}
+entity_id player = ENTITY_NONE;
 
 void draw_background_grid(void)
 {
@@ -75,18 +46,21 @@ void draw_background_grid(void)
 int main(void)
 {
     g = game_init();
-    
+
     InitWindow(g.display_width, g.display_height, "Comet");
     SetTargetFPS(g.fps);
-    
+
     c = camera_entity_init((Vector2){g.display_width, g.display_height});
-    
-    player = alloc_obj(O_player);
-    assert(player);
+
+    player = entity_alloc(O_player);
+    assert(player != ENTITY_NONE);
     camera_entity_set_target_entity(&c, player);
+
+    struct entity *player_entity = entity_get(player);
+    assert(player_entity);
     // TODO 202609212036 create a assets manager
-    player->sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
-    player->sp.scale = (Vector2){2.0f, 2.0f};
+    player_entity->sp = sprite_init("graphics/spaceship/UFO.png", 1, (uint32_t[]){4});
+    player_entity->sp.scale = (Vector2){2.0f, 2.0f};
 
     // TODO 202609201421 make a contructor function?
     // console area need be dynamic so if the screen
@@ -104,11 +78,11 @@ int main(void)
     {
         game_update();
     }
-    
+
     CloseWindow();
 
-    for (int i = 0; i < obj.used; ++i) free(darray_at(&obj, i));
-    darray_free(&obj);
+    console_free(&cmd);
+    arrfree(obj);
     return 0;
 }
 
@@ -144,8 +118,8 @@ uint32_t game_update(void)
         if (!g.is_paused) {
             BeginMode2D(c.camera);
                 camera_entity_update(&c);
-                for (int i = 0; i < obj.used; ++i) {
-                    entity_update(darray_at(&obj, i));
+                for (ptrdiff_t i = 0; i < arrlen(obj); ++i) {
+                    entity_update(&obj[i]);
                 }
                 if (g.is_console_enabled) {
                     draw_background_grid();
@@ -158,7 +132,7 @@ uint32_t game_update(void)
             if (cmd.command_ready) {
                 // TODO 202609192245 execute command line from console
                 // TODO 202609201607 implement a argument parser
-                // TODO 202609212058 add a fps_enabled command 
+                // TODO 202609212058 add a fps_enabled command
                 // to show fps and pmem usage
                 // TODO 202609212101 add command to show all collisions
                 // and invisible event blocks
@@ -192,7 +166,8 @@ uint32_t game_key_down(void)
     }
 
     if (!g.is_paused && !g.is_console_enabled) {
-        entity_set_action(player, key);
+        struct entity *player_entity = entity_get(player);
+        if (player_entity) entity_set_action(player_entity, key);
     }
 
     // TODO 202609212121 disable others input when console is open
@@ -202,12 +177,14 @@ uint32_t game_key_down(void)
                 console_text_append(&cmd.trace, LT_INFO, sb_stringf("Game was PAUSED"));
                 g.is_paused = !g.is_paused;
                 break;
-            case KEY_M:
-                console_text_append(&cmd.trace, LT_ERROR, sb_stringf("open menu %d", cmd.trace.used));
+            case KEY_M: {
+                console_text_append(&cmd.trace, LT_ERROR, sb_stringf("open menu %td", arrlen(cmd.trace)));
                 camera_entity_trigger_camera_shake(&c, 1.0f, 300.0f);
-                player->speed = (Vector2) {0,0};
+                struct entity *player_entity = entity_get(player);
+                if (player_entity) player_entity->speed = (Vector2) {0,0};
                 g.current_window = 1;
                 break;
+            }
         }
     }
     return 0;

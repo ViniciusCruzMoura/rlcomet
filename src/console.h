@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "raylib.h"
-#include "darray.h"
+#include "stb_ds.h"
 
 enum {
     LT_ERROR,
@@ -17,10 +17,8 @@ struct console_text {
     char* message;
 };
 
-typedef struct darray console_text_list;
-
 struct console {
-    console_text_list trace;
+    struct console_text *trace;
 
     char input[256];
     char command[256];
@@ -42,8 +40,9 @@ struct console {
 
 void console_update(struct console* cmd);
 void console_draw(struct console* cmd);
-void console_text_append(void* trace, int level, char* msg);
+void console_text_append(struct console_text **trace, int level, char* msg);
 void console_keyboard(struct console* cmd);
 void console_mouse(struct console* cmd);
+void console_free(struct console* cmd);
 
 #endif //CONSOLE_H

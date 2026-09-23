@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+uint64_t pmem_usage(void);
+
 #ifdef PMEM_USAGE_IMPLEMENTATION
 
 #if defined(_WIN32)

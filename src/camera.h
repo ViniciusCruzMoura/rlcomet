@@ -13,13 +13,13 @@ struct camera_entity {
     float shake_duration;     // Duration of the shake effect
     float shake_timer;        // Timer for shake duration
     bool is_shaking;          // Flag to indicate if the camera is shaking
-    struct entity *follow_target_entity; // reference to the entity the camera follows
+    entity_id follow_target_entity; // stable reference into the stb_ds entity array
     //struct entity base; // base properties of an entity
 };
 
 struct camera_entity camera_entity_init(Vector2 screen_size);
 void camera_entity_update(struct camera_entity *camera);
 void camera_entity_trigger_camera_shake(struct camera_entity *gcamera, float intensity, float duration);
-void camera_entity_set_target_entity(struct camera_entity *gcamera, struct entity *target_entity);
+void camera_entity_set_target_entity(struct camera_entity *gcamera, entity_id target_entity);
 
 #endif //CAMERA_H

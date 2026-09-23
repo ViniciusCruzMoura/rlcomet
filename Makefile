@@ -4,7 +4,8 @@ SOURCES = \
 	src/entity.c \
 	src/sprite.c \
 	src/console.c \
-	src/darray.c \
+	src/stb_ds.c \
+	src/pmem_usage.c \
 	src/camera.c
 
 OBJECTS = $(SOURCES:src/%.c=build/%.o)

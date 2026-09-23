@@ -1,6 +1,7 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include "sprite.h"
 
@@ -10,6 +11,9 @@ enum {
     O_bullet,
     O_enemy,
 };
+
+typedef ptrdiff_t entity_id;
+#define ENTITY_NONE ((entity_id)-1)
 
 struct entity {
     // TODO 202609212114 it will predefine the object/sprite behaviour
@@ -25,6 +29,9 @@ struct entity {
     uint32_t lifetime;
 };
 
+entity_id entity_alloc(uint32_t type);
+struct entity *entity_get(entity_id id);
+void entity_free(struct entity *o);
 struct entity entity_init(uint32_t type);
 void entity_update(struct entity *s);
 uint32_t entity_set_action(struct entity *s, uint32_t action);

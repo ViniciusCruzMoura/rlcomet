@@ -5,12 +5,12 @@
 #include "entity.h"
 #include "camera.h"
 #include "console.h"
-#include "darray.h"
+#include "stb_ds.h"
 
-extern struct darray obj;
+extern struct entity *obj;
 extern struct game_state g;
 extern struct camera_entity c;
-extern struct entity *player;
+extern entity_id player;
 
 extern struct console cmd;
 
@@ -27,9 +27,6 @@ struct game_state {
 struct game_state game_init(void);
 uint32_t game_update(void);
 uint32_t game_key_down(void);
-
-struct entity *alloc_obj(uint32_t type);
-void free_obj(struct entity *o);
 
 uint32_t rand_between(uint32_t min, uint32_t max);
 

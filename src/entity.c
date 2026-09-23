@@ -5,15 +5,40 @@
 #include <raymath.h>
 #include <stdio.h>
 
+entity_id entity_alloc(uint32_t type)
+{
+    for (ptrdiff_t i = 0; i < arrlen(obj); ++i) {
+        if (!obj[i].is_active || obj[i].type == O_none) {
+            obj[i] = entity_init(type);
+            return i;
+        }
+    }
+
+    arrput(obj, entity_init(type));
+    return arrlen(obj) - 1;
+}
+
+struct entity *entity_get(entity_id id)
+{
+    if (id < 0 || id >= arrlen(obj)) return NULL;
+    return &obj[id];
+}
+
+void entity_free(struct entity *o)
+{
+    o->is_active = 0;
+    o->type = O_none;
+}
+
 struct entity entity_init(uint32_t type)
 {
-    return (struct entity) {
-        type,
-        true,
-        (Vector2) {0, 0},
-        (Vector2) {1, 0},
-        .rotation = 0.0f,
-    };
+    struct entity new = {0};
+    new.type = type;
+    new.is_active = true;
+    new.position = (Vector2) {0, 0};
+    new.speed = (Vector2) {1, 0};
+    new.rotation = 0.0f;
+    return new;
 }
 
 uint32_t entity_set_action(struct entity *s, uint32_t action)
@@ -59,11 +84,16 @@ uint32_t entity_act_move_down(struct entity *s)
 
 uint32_t entity_act_shoot_missle(struct entity *s)
 {
-    struct entity *o = alloc_obj(O_bullet);
+    // entity_alloc() may realloc obj, so copy everything needed from s first.
+    Vector2 position = s->sp.position;
+
+    entity_id id = entity_alloc(O_bullet);
+    struct entity *o = entity_get(id);
     if (!o) return 0;
+
     o->position = (Vector2){
-        rand_between(s->sp.position.x, s->sp.position.x + 300.0f),
-        rand_between(s->sp.position.y, s->sp.position.y + 300.0f),
+        rand_between(position.x, position.x + 300.0f),
+        rand_between(position.y, position.y + 300.0f),
     };
     o->lifetime = rand_between(60, 180);
     return 1;
@@ -94,7 +124,7 @@ void entity_update(struct entity *s)
             sprite_update(&s->sp);
             break;
         case O_bullet:
-            
+
             // TODO 202609212109 have your own *_update() function
             if (s->lifetime > 0) --s->lifetime;
 
@@ -112,7 +142,7 @@ void entity_update(struct entity *s)
             DrawCircleV(s->position, 16.0f, YELLOW);
             DrawCircleV(s->position, 16.0f - 1, WHITE);
 
-            if (s->lifetime <= 0) free_obj(s);
+            if (s->lifetime <= 0) entity_free(s);
 
             break;
         case O_enemy:

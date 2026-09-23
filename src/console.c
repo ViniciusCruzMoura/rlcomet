@@ -68,7 +68,8 @@ void console_mouse(struct console* cmd)
     }
 
     if (cmd->scrollbar_dragging && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int max_first_row = cmd->trace.used > cmd->rows ? cmd->trace.used - cmd->rows : 0;
+        int trace_len = (int)arrlen(cmd->trace);
+        int max_first_row = trace_len > cmd->rows ? trace_len - cmd->rows : 0;
 
         int thumb_range = cmd->scrollbar.height - cmd->scrollbar_thumb.height;
 
@@ -90,17 +91,18 @@ void console_mouse(struct console* cmd)
 
 void console_update(struct console* cmd)
 {
-    int max_first_row = cmd->trace.used > cmd->rows ? cmd->trace.used - cmd->rows : 0;
+    int trace_len = (int)arrlen(cmd->trace);
+    int max_first_row = trace_len > cmd->rows ? trace_len - cmd->rows : 0;
 
-    if (cmd->trace.used != cmd->last_used) {
+    if (trace_len != cmd->last_used) {
         cmd->first_row = max_first_row;
-        cmd->last_used = cmd->trace.used;
+        cmd->last_used = trace_len;
     }
 
     cmd->scrollbar_thumb = cmd->scrollbar;
 
-    if (cmd->trace.used > cmd->rows) {
-        cmd->scrollbar_thumb.height = cmd->scrollbar.height * cmd->rows / cmd->trace.used;
+    if (trace_len > cmd->rows) {
+        cmd->scrollbar_thumb.height = cmd->scrollbar.height * cmd->rows / trace_len;
 
         if (cmd->scrollbar_thumb.height < cmd->row_height) {
             cmd->scrollbar_thumb.height = cmd->row_height;
@@ -132,13 +134,13 @@ void console_draw(struct console* cmd)
     for (int row = 0; row < cmd->rows; row++) {
         int index = cmd->first_row + row;
 
-        if (index >= cmd->trace.used) {
+        if (index >= arrlen(cmd->trace)) {
             break;
         }
 
-        struct console_text* log = darray_at(&cmd->trace, index);
+        struct console_text* log = &cmd->trace[index];
 
-        if (log == NULL || log->message == NULL)
+        if (log->message == NULL)
             continue;
 
         Color color = WHITE;
@@ -196,10 +198,20 @@ void console_draw(struct console* cmd)
 //     }
 // }
 
-void console_text_append(void* trace, int level, char* msg)
+void console_text_append(struct console_text **trace, int level, char* msg)
 {
-    struct console_text* log = malloc(sizeof(struct console_text));
-    log->level = level;
-    log->message = msg;
-    darray_append(trace, log);
+    if (!msg) return;
+
+    arrput(*trace, ((struct console_text) {
+        .level = level,
+        .message = msg,
+    }));
+}
+
+void console_free(struct console* cmd)
+{
+    for (ptrdiff_t i = 0; i < arrlen(cmd->trace); ++i) {
+        free(cmd->trace[i].message);
+    }
+    arrfree(cmd->trace);
 }
