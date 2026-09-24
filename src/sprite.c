@@ -1,10 +1,13 @@
 #include <raylib.h>
 #include "sprite.h"
+#include "assets.h"
 
-struct sprite sprite_init(const char* filepath, uint32_t rows, uint32_t *frames_per_row)
+struct sprite sprite_init(uint32_t texture_id, uint32_t rows, const uint32_t *frames_per_row)
 {
-    struct sprite new;
+    struct sprite new = {0};
+    Texture2D tex = assets_texture(texture_id);
 
+    new.texture_id = texture_id;
     new.current_frame = 0;
     new.current_row = 0;
     new.frames_counter = 0;
@@ -17,17 +20,14 @@ struct sprite sprite_init(const char* filepath, uint32_t rows, uint32_t *frames_
         new.frames_per_row[i] = frames_per_row[i];
     }
 
-    new.spritesheet = LoadTexture(filepath);
-
     new.frame_rec = (Rectangle) { 
         0.0f,
-        (float)new.current_row * (new.spritesheet.height / new.total_rows), 
-        (float)new.spritesheet.width / new.frames_per_row[new.current_row],
-        (float)new.spritesheet.height / new.total_rows
+        (float)new.current_row * (tex.height / new.total_rows), 
+        (float)tex.width / new.frames_per_row[new.current_row],
+        (float)tex.height / new.total_rows
     };
 
     new.scale = (Vector2){1.0f, 1.0f};
-    //new.offset = (Vector2){0.0f, 0.0f};
     new.position = (Vector2) { 350.0f, 280.0f };
     new.rotation = 0.0f;
 
@@ -38,6 +38,8 @@ struct sprite sprite_init(const char* filepath, uint32_t rows, uint32_t *frames_
 // to avoid running this logic without a texture2d
 void sprite_update(struct sprite *sp)
 {
+    Texture2D tex = assets_texture(sp->texture_id);
+
     sp->frames_counter++;
 
     if ( sp->frames_speed > 0 && sp->frames_counter >= (60/sp->frames_speed))
@@ -49,8 +51,8 @@ void sprite_update(struct sprite *sp)
             sp->current_frame = 0;
         }
 
-        sp->frame_rec.x = (float)sp->current_frame * (float)(sp->spritesheet.width / sp->frames_per_row[sp->current_row]);
-        sp->frame_rec.y = (float)sp->current_row * (float)(sp->spritesheet.height / sp->total_rows);
+        sp->frame_rec.x = (float)sp->current_frame * (float)(tex.width / sp->frames_per_row[sp->current_row]);
+        sp->frame_rec.y = (float)sp->current_row * (float)(tex.height / sp->total_rows);
     }
 
     Vector2 offset = {
@@ -64,7 +66,7 @@ void sprite_update(struct sprite *sp)
         sp->frame_rec.width * sp->scale.x,
         sp->frame_rec.height * sp->scale.y,
     };
-    DrawTexturePro(sp->spritesheet, sp->frame_rec, dest, (Vector2){0.0f, 0.0f}, sp->rotation, WHITE);
+    DrawTexturePro(tex, sp->frame_rec, dest, (Vector2){0.0f, 0.0f}, sp->rotation, WHITE);
 }
 
 void sprite_set_animation_state(struct sprite* sp, uint32_t row)
@@ -72,6 +74,7 @@ void sprite_set_animation_state(struct sprite* sp, uint32_t row)
     if (row < sp->total_rows) {
         sp->current_row = row;
         sp->current_frame = 0;
+        sp->frames_counter = 0;
     }
 }
 
