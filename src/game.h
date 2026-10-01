@@ -16,8 +16,8 @@
 #define TO_VIRTUAL_Y(y) ((float)(y) * VIRTUAL_HEIGHT / GetScreenHeight())
 
 extern struct entity *obj;
-extern struct game_state g;
-extern struct camera_entity c;
+extern struct game_state gs;
+extern struct camera_entity ce;
 extern entity_id player;
 extern RenderTexture2D screen;
 
@@ -36,8 +36,11 @@ struct game_state {
 };
 
 struct game_state game_init(void);
+uint32_t game_input(void);
 uint32_t game_update(void);
-uint32_t game_key_down(void);
+// TODO 202610011947 separate update from draw
+// void game_draw(struct game_state *instance);
+// void game_free(struct game_state *instance);
 
 uint32_t rand_between(uint32_t min, uint32_t max);
 

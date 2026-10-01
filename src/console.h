@@ -38,11 +38,12 @@ struct console {
     bool command_ready;
 };
 
+struct console console_init(void);
+void console_input(struct console* cmd);
 void console_update(struct console* cmd);
 void console_draw(struct console* cmd);
-void console_text_append(struct console_text **trace, int level, char* msg);
-void console_keyboard(struct console* cmd);
-void console_mouse(struct console* cmd);
 void console_free(struct console* cmd);
+
+void console_text_append(struct console_text **cmd, int level, char* msg);
 
 #endif //CONSOLE_H

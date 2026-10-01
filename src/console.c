@@ -1,6 +1,6 @@
 #include "console.h"
 
-void console_keyboard(struct console* cmd)
+static void console_keyboard(struct console* cmd)
 {
     if (!cmd->input_active) {
         if (IsKeyPressed(KEY_K)) {
@@ -47,7 +47,7 @@ void console_keyboard(struct console* cmd)
     }
 }
 
-void console_mouse(struct console* cmd)
+static void console_mouse(struct console* cmd)
 {
     Vector2 mouse = GetMousePosition();
 
@@ -89,6 +89,24 @@ void console_mouse(struct console* cmd)
     }
 }
 
+struct console console_init(void)
+{
+    return (struct console) {
+        .area = (Rectangle){.x=1, .y=20, .width=GetScreenWidth()/2, .height=GetScreenHeight()/2},
+        .input_area = {1, GetScreenHeight()/2 + 20, GetScreenWidth()/2, 24},
+        .scrollbar = {GetScreenWidth()/2, 20, 10, GetScreenHeight()/2},
+        .rows = 18,
+        .row_height = 20,
+        .last_used = -1
+    };
+}
+
+void console_input(struct console* cmd)
+{
+    console_mouse(cmd);
+    console_keyboard(cmd);
+}
+
 void console_update(struct console* cmd)
 {
     int trace_len = (int)arrlen(cmd->trace);
@@ -115,8 +133,7 @@ void console_update(struct console* cmd)
         }
     }
 
-    console_mouse(cmd);
-    console_keyboard(cmd);
+    console_input(cmd);
 
     if (cmd->first_row < 0) {
         cmd->first_row = 0;
@@ -198,11 +215,11 @@ void console_draw(struct console* cmd)
 //     }
 // }
 
-void console_text_append(struct console_text **trace, int level, char* msg)
+void console_text_append(struct console_text **cmd, int level, char* msg)
 {
     if (!msg) return;
 
-    arrput(*trace, ((struct console_text) {
+    arrput(*cmd, ((struct console_text) {
         .level = level,
         .message = msg,
     }));
@@ -215,3 +232,4 @@ void console_free(struct console* cmd)
     }
     arrfree(cmd->trace);
 }
+
