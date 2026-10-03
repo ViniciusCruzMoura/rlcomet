@@ -91,8 +91,10 @@ struct game_state game_init(void)
 
 uint32_t game_update(void)
 {
+    // TODO 202610031114 create a struct to store all flags
     static bool pmem_enabled = false;
     static bool editor_grid_enabled = false;
+    static bool fps_enabled = false;
 
     gs.display_should_close = WindowShouldClose();
     game_input();
@@ -103,34 +105,49 @@ uint32_t game_update(void)
             if (strcmp(cmd.command, "pmem") == 0) {
                 pmem_enabled = !pmem_enabled;
             }
+            else if (strcmp(cmd.command, "grid") == 0) {
+                editor_grid_enabled = !editor_grid_enabled;
+            }
+            else if (strcmp(cmd.command, "collision") == 0) {
+            // TODO 202609212101 add command to show all collisions
+            // and invisible event blocks
+            }
+            else if (strcmp(cmd.command, "fps") == 0) {
+                fps_enabled = !fps_enabled;
+            }
             cmd.command[0] = '\0';
             cmd.command_ready = false;
             // TODO 202609192245 execute command line from console
             // TODO 202609201607 implement a argument parser
-            // TODO 202609212058 add a fps_enabled command
-            // to show fps and pmem usage
-            // TODO 202609212101 add command to show all collisions
-            // and invisible event blocks
         }
     }
 
     BeginTextureMode(screen);
         ClearBackground(BLACK);
 
-        if (gs.current_window == 1) {
-            draw_menu();
-        } else if (!gs.is_paused) {
-            BeginMode2D(ce.camera);
-                camera_entity_update(&ce);
-                if (gs.is_console_enabled) {
-                    draw_background_grid();
-                }
-                for (ptrdiff_t i = 0; i < arrlen(obj); ++i) { 
-                    entity_update(&obj[i]);
-                }
-            EndMode2D();
-            DrawText("M: MENU", 4, 4, 8, RAYWHITE);
+        switch (gs.current_window) {
+            case 1:
+                draw_menu();
+                break;
+            case 2:
+                BeginMode2D(ce.camera);
+                    if (!gs.is_paused) {
+                        camera_entity_update(&ce);
+                        // TODO 202610012008 enable background grid on console
+                        if (editor_grid_enabled) {
+                            draw_background_grid();
+                        }
+                        for (ptrdiff_t i = 0; i < arrlen(obj); ++i) {
+                            entity_update(&obj[i]);
+                        }
+                    }
+                EndMode2D();
+                DrawText("B: MENU", 4, 4, 8, RAYWHITE);
+                break;
+            default:
+                //nothing
         }
+
     EndTextureMode();
 
     BeginDrawing();
@@ -148,6 +165,9 @@ uint32_t game_update(void)
             double megabytes = (double)bytes / 1024.0 / 1024.0;
             snprintf(text, sizeof(text), "Memory usage: %.2f MB", megabytes);
             DrawText(text, 40, 40, 24, RED);
+        }
+        if (fps_enabled) {
+            DrawFPS(50, 50);
         }
     EndDrawing();
     return 0;
