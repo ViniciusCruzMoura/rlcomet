@@ -15,6 +15,8 @@ enum {
 typedef ptrdiff_t entity_id;
 #define ENTITY_NONE ((entity_id)-1)
 
+// TODO 202610032046 add poly struct to do sat and mtv calc
+
 struct entity {
     // TODO 202610012132 i think ill need a var to set if it is solid
     // or not, if its solid so activate collision or see obj type to
@@ -58,12 +60,13 @@ void entity_free(struct entity *o);
 // and hae collision to detect if it trigger
 // the signal
 
-// TODO 202610012136 static functions ? maybe
 uint32_t entity_set_action(struct entity *s, uint32_t action);
-uint32_t entity_act_move_up(struct entity *s);
-uint32_t entity_act_move_down(struct entity *s);
-uint32_t entity_act_move_left(struct entity *s);
-uint32_t entity_act_move_right(struct entity *s);
-uint32_t entity_act_shoot_missle(struct entity *s);
+
+// TODO 202610012136 static functions ? maybe
+// uint32_t entity_act_move_up(struct entity *s);
+// uint32_t entity_act_move_down(struct entity *s);
+// uint32_t entity_act_move_left(struct entity *s);
+// uint32_t entity_act_move_right(struct entity *s);
+// uint32_t entity_act_shoot_missle(struct entity *s);
 
 #endif //ENTITY_H

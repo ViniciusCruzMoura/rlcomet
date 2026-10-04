@@ -96,6 +96,8 @@ uint32_t game_update(void)
     static bool editor_grid_enabled = false;
     static bool fps_enabled = false;
 
+    // TODO 202610032054 dont use ESC to close game, 
+    // ESC will be used to show menu
     gs.display_should_close = WindowShouldClose();
     game_input();
 
@@ -109,8 +111,8 @@ uint32_t game_update(void)
                 editor_grid_enabled = !editor_grid_enabled;
             }
             else if (strcmp(cmd.command, "collision") == 0) {
-            // TODO 202609212101 add command to show all collisions
-            // and invisible event blocks
+                // TODO 202609212101 add command to show all collisions
+                // and invisible event blocks
             }
             else if (strcmp(cmd.command, "fps") == 0) {
                 fps_enabled = !fps_enabled;

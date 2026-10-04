@@ -41,32 +41,7 @@ struct entity entity_init(uint32_t type)
     return new;
 }
 
-uint32_t entity_set_action(struct entity *s, uint32_t action)
-{
-    s->position.x += s->speed.x;
-    s->position.y += s->speed.y;
-    s->rotation += 1;
-    switch (action) {
-        case KEY_SPACE:
-            entity_act_shoot_missle(s);
-            break;
-        case KEY_W:
-            entity_act_move_up(s);
-            break;
-        case KEY_S:
-            entity_act_move_down(s);
-            break;
-        case KEY_A:
-            entity_act_move_left(s);
-            break;
-        case KEY_D:
-            entity_act_move_right(s);
-            break;
-    }
-    return 0;
-}
-
-uint32_t entity_act_move_up(struct entity *s)
+static uint32_t entity_act_move_up(struct entity *s)
 {
     if (s->speed.x > -2)
         if (s->speed.y > -2)
@@ -74,7 +49,7 @@ uint32_t entity_act_move_up(struct entity *s)
     return 0;
 }
 
-uint32_t entity_act_move_down(struct entity *s)
+static uint32_t entity_act_move_down(struct entity *s)
 {
     if (s->speed.x > -2)
         if (s->speed.y < 2)
@@ -82,7 +57,7 @@ uint32_t entity_act_move_down(struct entity *s)
     return 0;
 }
 
-uint32_t entity_act_shoot_missle(struct entity *s)
+static uint32_t entity_act_shoot_missle(struct entity *s)
 {
     // entity_alloc() may realloc obj, so copy everything needed from s first.
     Vector2 position = s->sp.position;
@@ -99,14 +74,14 @@ uint32_t entity_act_shoot_missle(struct entity *s)
     return 1;
 }
 
-uint32_t entity_act_move_left(struct entity *s)
+static uint32_t entity_act_move_left(struct entity *s)
 {
     if (s->speed.x > -2)
         s->speed.x -= 1;
     return 0;
 }
 
-uint32_t entity_act_move_right(struct entity *s)
+static uint32_t entity_act_move_right(struct entity *s)
 {
     if (s->speed.x < 2)
         s->speed.x += 1;
@@ -149,3 +124,29 @@ void entity_update(struct entity *s)
             break;
     }
 }
+
+uint32_t entity_set_action(struct entity *s, uint32_t action)
+{
+    s->position.x += s->speed.x;
+    s->position.y += s->speed.y;
+    s->rotation += 1;
+    switch (action) {
+        case KEY_SPACE:
+            entity_act_shoot_missle(s);
+            break;
+        case KEY_W:
+            entity_act_move_up(s);
+            break;
+        case KEY_S:
+            entity_act_move_down(s);
+            break;
+        case KEY_A:
+            entity_act_move_left(s);
+            break;
+        case KEY_D:
+            entity_act_move_right(s);
+            break;
+    }
+    return 0;
+}
+
