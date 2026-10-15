@@ -9,8 +9,42 @@ uint64_t pmem_usage(void);
 
 #if defined(_WIN32)
 
+#ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+#endif
+
+// Temporarily rename conflicting Windows declarations
+#define Rectangle    Win32Rectangle
+#define CloseWindow  Win32CloseWindow
+#define ShowCursor   Win32ShowCursor
+#define LoadImageA   Win32LoadImageA
+#define LoadImageW   Win32LoadImageW
+#define DrawTextA    Win32DrawTextA
+#define DrawTextW    Win32DrawTextW
+#define DrawTextExA  Win32DrawTextExA
+#define DrawTextExW  Win32DrawTextExW
+#define PlaySoundA   Win32PlaySoundA
+#define PlaySoundW   Win32PlaySoundW
+
 #include <windows.h>
 #include <psapi.h>
+
+// Restore names before including raylib/raygui
+#undef Rectangle
+#undef CloseWindow
+#undef ShowCursor
+#undef LoadImage
+#undef LoadImageA
+#undef LoadImageW
+#undef DrawText
+#undef DrawTextA
+#undef DrawTextW
+#undef DrawTextEx
+#undef DrawTextExA
+#undef DrawTextExW
+#undef PlaySound
+#undef PlaySoundA
+#undef PlaySoundW
 
 uint64_t pmem_usage(void)
 {

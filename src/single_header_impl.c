@@ -1,0 +1,19 @@
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
+#undef STB_DS_IMPLEMENTATION
+
+#define PMEM_USAGE_IMPLEMENTATION
+#include "pmem_usage.h"
+#undef PMEM_USAGE_IMPLEMENTATION
+
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+#undef RAYGUI_IMPLEMENTATION
+
+#define STRING_BUILDER_IMPLEMENTATION
+#include "sb.h"
+#undef STRING_BUILDER_IMPLEMENTATION
+
+#define PHYSICS_IMPLEMENTATION
+#include "physics.h"
+#undef PHYSICS_IMPLEMENTATION

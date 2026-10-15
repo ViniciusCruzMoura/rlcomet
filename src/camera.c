@@ -1,6 +1,10 @@
 #include <raylib.h>
 #include "camera.h"
+#include "stb_ds.h"
 #include <raymath.h>
+#include <math.h>
+
+#define CAMERA_FOLLOW_RATE 10.0f
 
 struct camera_entity camera_entity_init(Vector2 screen_size)
 {
@@ -9,72 +13,27 @@ struct camera_entity camera_entity_init(Vector2 screen_size)
     new.camera.offset = (Vector2){screen_size.x / 2.0f, screen_size.y / 2.0f};
     new.camera.rotation = 0.0f;
     new.camera.zoom = 1.0f;
-    new.shake_intensity = 0.0f;
-    new.shake_duration = 0.0f;
-    new.shake_timer = 0.0f;
-    new.is_shaking = false;
     new.follow_target_entity = ENTITY_NONE;
-    new.movement_bounds = (Rectangle){
-        new.camera.offset.x / 2,
-        new.camera.offset.y / 2,
-        new.camera.offset.x,
-        new.camera.offset.y,
-    };
     return new;
 }
 
-void camera_entity_update(struct camera_entity *gcamera)
+void camera_entity_update(struct camera_entity *gcamera, struct entity *entities)
 {
-    struct entity *target = entity_get(gcamera->follow_target_entity);
-    if (!target) return;
-
-    Vector2 target_position = target->position;
-
-    if (target_position.x < gcamera->camera.target.x - gcamera->movement_bounds.width / 2) {
-        gcamera->camera.target.x -= abs((uint32_t)target->speed.x) + 0.2f;
-    } else if (target_position.x > gcamera->camera.target.x + gcamera->movement_bounds.width / 2) {
-        gcamera->camera.target.x += abs((uint32_t)target->speed.x) + 0.2f;
-    }
-    if (target_position.y < gcamera->camera.target.y - gcamera->movement_bounds.height / 2) {
-        gcamera->camera.target.y -= abs((uint32_t)target->speed.y) + 0.2f;
-    } else if (target_position.y > gcamera->camera.target.y + gcamera->movement_bounds.height / 2) {
-        gcamera->camera.target.y += abs((uint32_t)target->speed.y) + 0.2f;
-    }
-
-    if (abs((uint32_t)target->speed.y) == 0 && gcamera->camera.target.y > target_position.y) {
-        gcamera->camera.target.y -= 2;
-    }
-    if (abs((uint32_t)target->speed.x) == 0 && gcamera->camera.target.y < target_position.y) {
-        gcamera->camera.target.y += 2;
-    }
-    if (abs((uint32_t)target->speed.x) == 0 && gcamera->camera.target.x > target_position.x) {
-        gcamera->camera.target.x -= 2;
-    }
-    if (abs((uint32_t)target->speed.x) == 0 && gcamera->camera.target.x < target_position.x) {
-        gcamera->camera.target.x += 2;
-    }
-
-    if (gcamera->is_shaking) {
-        gcamera->shake_timer -= 1;
-        if (gcamera->shake_timer <= 0.0f) {
-            gcamera->is_shaking = false;
-            gcamera->shake_intensity = 0.0f;
-        } else {
-            gcamera->camera.target.x = gcamera->camera.target.x + (GetRandomValue(-1, 1) * gcamera->shake_intensity);
-            gcamera->camera.target.y = gcamera->camera.target.y + (GetRandomValue(-1, 1) * gcamera->shake_intensity);
+    gcamera->follow_target_entity = ENTITY_NONE;
+    for (ptrdiff_t i = 0; i < arrlen(entities); ++i) {
+        if (entities[i].is_active && entities[i].type == PLAYER) {
+            gcamera->follow_target_entity = i;
+            break;
         }
     }
-}
-
-void camera_entity_trigger_camera_shake(struct camera_entity *gcamera, float intensity, float duration)
-{
-    gcamera->shake_intensity = intensity;
-    gcamera->shake_duration = duration;
-    gcamera->shake_timer = duration;
-    gcamera->is_shaking = true; //start shaking effect
-}
-
-void camera_entity_set_target_entity(struct camera_entity *gcamera, entity_id target_entity)
-{
-    gcamera->follow_target_entity = target_entity;
+    if (gcamera->follow_target_entity == ENTITY_NONE) {
+        return;
+    }
+    const struct entity *target = &entities[gcamera->follow_target_entity];
+    Vector2 position = Vector2Add(target->position, (Vector2){
+        fabsf(target->sp.frame_rec.width * target->sp.scale.x) / 2.0f,
+        fabsf(target->sp.frame_rec.height * target->sp.scale.y) / 2.0f
+    });
+    float blend = 1.0f - expf(-CAMERA_FOLLOW_RATE * GetFrameTime());
+    gcamera->camera.target = Vector2Lerp(gcamera->camera.target, position, blend);
 }

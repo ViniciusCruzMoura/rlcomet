@@ -1,2 +1,2 @@
-#define PMEM_USAGE_IMPLEMENTATION
-#include "pmem_usage.h"
+#define ASSETS_IMPLEMENTATION
+#include "assets.h"
