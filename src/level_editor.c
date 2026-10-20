@@ -11,12 +11,13 @@
 #define EDITOR_ZOOM_STEP 0.25f
 #define EDITOR_PAN_SPEED 160.0f
 #define EDITOR_PANEL_WIDTH 250.0f
+#define EDITOR_COLLAPSED_WIDTH 30.0f
 #define EDITOR_TEMPLATE_CELL 36.0f
-#define EDITOR_INSPECTOR_HEIGHT 232.0f
 #define EDITOR_INACTIVE_OPACITY 0.4f
 #define EDITOR_VERTEX_RADIUS 5.0f
 
 enum { EDITOR_SELECT, EDITOR_PLACE, EDITOR_POLYGON };
+enum { EDITOR_OBJECTS, EDITOR_LAYERS, EDITOR_PROPERTIES };
 enum { EDITOR_DRAG_NONE, EDITOR_DRAG_MOVE, EDITOR_DRAG_BOX, EDITOR_DRAG_VERTEX };
 
 static Rectangle entity_bounds(const struct entity *e, uint32_t tile_size)
@@ -30,6 +31,14 @@ static Rectangle entity_bounds(const struct entity *e, uint32_t tile_size)
         h = tile_size;
     }
     return (Rectangle){e->position.x, e->position.y, w, h};
+}
+
+static bool editor_inside_level(const struct entity *e, Vector2 position, const struct level *level)
+{
+    Rectangle bounds = entity_bounds(e, level->tile_size);
+    return position.x >= 0 && position.y >= 0 &&
+           position.x + bounds.width <= fminf(WORLD_SIZE, level->width * level->tile_size) &&
+           position.y + bounds.height <= fminf(WORLD_SIZE, level->height * level->tile_size);
 }
 
 static void editor_preview(struct sprite sp, Rectangle box)
@@ -141,8 +150,7 @@ static void editor_paste(struct level_editor *editor, struct level *level, Vecto
         const struct entity *src = &editor->clipboard[i];
         Vector2 at = {position.x + src->position.x - anchor.x,
                       position.y + src->position.y - anchor.y};
-        if (at.x < 0 || at.y < 0 || at.x >= level->width * level->tile_size ||
-            at.y >= level->height * level->tile_size || at.x >= WORLD_SIZE || at.y >= WORLD_SIZE) {
+        if (!editor_inside_level(src, at, level)) {
             continue;
         }
         bool exists = false;
@@ -239,6 +247,9 @@ void level_editor_update(struct level_editor *editor, Vector2 mouse, Vector2 vie
     }
     if (!editor->enabled || !editor->levels || !arrlen(*editor->levels)) {
         return;
+    }
+    if (IsKeyPressed(KEY_F2)) {
+        editor->sidebar_collapsed = !editor->sidebar_collapsed;
     }
     bool ctrl = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
     bool shift = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
@@ -363,7 +374,8 @@ void level_editor_update(struct level_editor *editor, Vector2 mouse, Vector2 vie
         }
     }
 
-    bool over_panel = mouse.x >= viewport.x * (1 - EDITOR_PANEL_WIDTH / GetScreenWidth());
+    float panel_width = editor->sidebar_collapsed ? EDITOR_COLLAPSED_WIDTH : EDITOR_PANEL_WIDTH;
+    bool over_panel = mouse.x >= viewport.x * (1 - panel_width / GetScreenWidth());
     Vector2 world = GetScreenToWorld2D(mouse, editor->camera);
     if (editor->drag_mode && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         if (editor->drag_mode == EDITOR_DRAG_BOX) {
@@ -403,8 +415,7 @@ void level_editor_update(struct level_editor *editor, Vector2 mouse, Vector2 vie
                 struct entity *e = &level->entities[i];
                 if (editor_is_selected(editor, e->id)) {
                     Vector2 next = {e->position.x + delta.x, e->position.y + delta.y};
-                    if (next.x < 0 || next.y < 0 || next.x >= level->width * level->tile_size ||
-                        next.y >= level->height * level->tile_size || next.x >= WORLD_SIZE || next.y >= WORLD_SIZE) {
+                    if (!editor_inside_level(e, next, level)) {
                         return;
                     }
                 }
@@ -497,6 +508,7 @@ void level_editor_update(struct level_editor *editor, Vector2 mouse, Vector2 vie
     }
     if (hit >= 0) {
         uint64_t id = level->entities[hit].id;
+        editor->sidebar_tab = EDITOR_PROPERTIES;
         if (shift) {
             editor_select(editor, id, true);
         } else if (!editor_is_selected(editor, id)) {
@@ -512,12 +524,16 @@ void level_editor_update(struct level_editor *editor, Vector2 mouse, Vector2 vie
         if (e.is_active) {
             e.position = (Vector2){x, y};
             e.layer = editor->layer;
-            int index = level_add_entity(level, e);
-            if (index < 0) {
+            if (!editor_inside_level(&e, e.position, level)) {
                 entity_free(&e);
             } else {
-                editor_select(editor, level->entities[index].id, false);
-                editor->saved = 0;
+                int index = level_add_entity(level, e);
+                if (index < 0) {
+                    entity_free(&e);
+                } else {
+                    editor_select(editor, level->entities[index].id, false);
+                    editor->saved = 0;
+                }
             }
         }
     } else {
@@ -599,33 +615,27 @@ void level_editor_gui(struct level_editor *editor)
     if (!arrlen(level->layers)) {
         return;
     }
-    float x = GetScreenWidth() - EDITOR_PANEL_WIDTH;
     float height = GetScreenHeight();
-    Rectangle panel = {x, 0, EDITOR_PANEL_WIDTH, height};
-    GuiPanel(panel, NULL);
-    GuiLabel((Rectangle){x + 10, 8, 150, 20}, "LEVEL EDITOR");
-    if (GuiButton((Rectangle){x + 174, 8, 66, 22}, "Save")) {
+    float width = editor->sidebar_collapsed ? EDITOR_COLLAPSED_WIDTH : EDITOR_PANEL_WIDTH;
+    float x = GetScreenWidth() - width;
+    GuiPanel((Rectangle){x, 0, width, height}, NULL);
+    if (editor->sidebar_collapsed) {
+        if (GuiButton((Rectangle){x + 3, 8, 24, 24}, "<")) {
+            editor->sidebar_collapsed = false;
+        }
+        return;
+    }
+    GuiLabel((Rectangle){x + 10, 8, 140, 22}, "LEVEL EDITOR");
+    if (GuiButton((Rectangle){x + 154, 8, 24, 22}, ">")) {
+        editor->sidebar_collapsed = true;
+        return;
+    }
+    if (GuiButton((Rectangle){x + 184, 8, 56, 22}, "Save")) {
         editor->saved = level_save(*editor->levels, ASSETS_FILE) ? 1 : -1;
     }
 
-    int place_layer = editor->layer;
-    GuiLabel((Rectangle){x + 10, 40, 120, 20}, "Place on layer");
-    GuiSpinner((Rectangle){x + 140, 40, 98, 22}, NULL, &place_layer, 0, arrlen(level->layers) - 1, false);
-    if (editor->layer != (uint32_t)place_layer) {
-        editor->layer = place_layer;
-        editor_clear_selection(editor);
-        editor->tool = EDITOR_SELECT;
-    }
-    bool layer_visible = level->layers[editor->layer].visible;
-    GuiCheckBox((Rectangle){x + 10, 70, 16, 16}, "Layer visible", &layer_visible);
-    GuiCheckBox((Rectangle){x + 123, 70, 16, 16}, "Show Colliders", &editor->show_colliders);
-    if (layer_visible != (bool)level->layers[editor->layer].visible) {
-        level->layers[editor->layer].visible = layer_visible;
-        editor->saved = 0;
-    }
-
     int tool = editor->tool;
-    GuiToggleGroup((Rectangle){x + 10, 97, (230 - 2 * GuiGetStyle(TOGGLE, GROUP_PADDING)) / 3.0f, 22},
+    GuiToggleGroup((Rectangle){x + 10, 40, (230 - 2 * GuiGetStyle(TOGGLE, GROUP_PADDING)) / 3.0f, 22},
                    "Select;Place;Polygon", &tool);
     if (tool != editor->tool &&
         (tool != EDITOR_POLYGON || editor_selected_index(editor, level) >= 0)) {
@@ -633,108 +643,114 @@ void level_editor_gui(struct level_editor *editor)
         editor->vertex = -1;
         editor->drag_mode = EDITOR_DRAG_NONE;
     }
-    GuiLabel((Rectangle){x + 10, 124, 220, 18}, TextFormat("TEMPLATES  (%d)", arrlen(editor->templates)));
-    const float list_y = 146;
-    const float list_height = fmaxf(EDITOR_TEMPLATE_CELL, height - EDITOR_INSPECTOR_HEIGHT - list_y);
-    const int columns = (int)((EDITOR_PANEL_WIDTH - 20) / EDITOR_TEMPLATE_CELL);
-    const int rows = (int)(list_height / EDITOR_TEMPLATE_CELL);
-    const int slots = columns * rows;
-    const int count = arrlen(editor->templates);
-    const int max_start = (count > slots) ? ((count - slots + columns - 1) / columns) * columns : 0;
-    if ((int)editor->palette_start > max_start) {
-        editor->palette_start = max_start;
-    }
-    if (GuiButton((Rectangle){x + 184, 124, 25, 20}, "<") && editor->palette_start >= (uint32_t)columns) {
-        editor->palette_start -= columns;
-    }
-    if (GuiButton((Rectangle){x + 214, 124, 25, 20}, ">") && editor->palette_start < (uint32_t)max_start) {
-        editor->palette_start += columns;
-    }
-    Rectangle list = {x + 10, list_y, columns * EDITOR_TEMPLATE_CELL, rows * EDITOR_TEMPLATE_CELL};
-    if (CheckCollisionPointRec(GetMousePosition(), list)) {
-        float wheel = GetMouseWheelMove();
-        int offset = (int)editor->palette_start - (int)wheel * columns;
-        if (wheel && offset < 0) {
-            offset = 0;
+
+    GuiToggleGroup((Rectangle){x + 10, 73, (230 - 2 * GuiGetStyle(TOGGLE, GROUP_PADDING)) / 3.0f, 22},
+                   "Objects;Layers;Props", &editor->sidebar_tab);
+    if (editor->sidebar_tab == EDITOR_OBJECTS) {
+        GuiLabel((Rectangle){x + 10, 107, 166, 18}, TextFormat("TEMPLATES (%d)", arrlen(editor->templates)));
+        const int columns = (int)((EDITOR_PANEL_WIDTH - 20) / EDITOR_TEMPLATE_CELL);
+        const int rows = (int)(fmaxf(0, height - 136) / EDITOR_TEMPLATE_CELL);
+        const int slots = columns * rows;
+        const int count = arrlen(editor->templates);
+        const int max_start = (count > slots) ? ((count - slots + columns - 1) / columns) * columns : 0;
+        if ((int)editor->palette_start > max_start) {
+            editor->palette_start = max_start;
         }
-        if (wheel && offset > max_start) {
-            offset = max_start;
+        if (GuiButton((Rectangle){x + 184, 105, 25, 20}, "<") && editor->palette_start >= (uint32_t)columns) {
+            editor->palette_start -= columns;
         }
-        if (wheel) {
+        if (GuiButton((Rectangle){x + 214, 105, 25, 20}, ">") && editor->palette_start < (uint32_t)max_start) {
+            editor->palette_start += columns;
+        }
+        Rectangle list = {x + 10, 132, columns * EDITOR_TEMPLATE_CELL, rows * EDITOR_TEMPLATE_CELL};
+        if (CheckCollisionPointRec(GetMousePosition(), list)) {
+            int offset = (int)editor->palette_start - (int)GetMouseWheelMove() * columns;
+            if (offset < 0) {
+                offset = 0;
+            }
+            if (offset > max_start) {
+                offset = max_start;
+            }
             editor->palette_start = offset;
         }
-    }
-    for (int i = 0; i < slots; ++i) {
-        int index = editor->palette_start + i;
-        if (index >= count) {
-            break;
+        for (int i = 0; i < slots && (int)editor->palette_start + i < count; ++i) {
+            int index = editor->palette_start + i;
+            Rectangle cell = {list.x + (i % columns) * EDITOR_TEMPLATE_CELL,
+                              list.y + (i / columns) * EDITOR_TEMPLATE_CELL,
+                              EDITOR_TEMPLATE_CELL - 2, EDITOR_TEMPLATE_CELL - 2};
+            if (GuiButton(cell, "")) {
+                editor->brush = index;
+                editor->tool = EDITOR_PLACE;
+                editor_clear_selection(editor);
+            }
+            editor_preview(editor->templates[index].sp, cell);
+            if (editor->brush == index) {
+                DrawRectangleLinesEx(cell, 2, YELLOW);
+            }
         }
-        Rectangle cell = {list.x + (i % columns) * EDITOR_TEMPLATE_CELL,
-                          list.y + (i / columns) * EDITOR_TEMPLATE_CELL,
-                          EDITOR_TEMPLATE_CELL - 2, EDITOR_TEMPLATE_CELL - 2};
-        if (GuiButton(cell, "")) {
-            editor->brush = index;
-            editor->tool = EDITOR_PLACE;
+    } else if (editor->sidebar_tab == EDITOR_LAYERS) {
+        int place_layer = editor->layer;
+        GuiLabel((Rectangle){x + 10, 112, 120, 20}, "Active layer");
+        GuiSpinner((Rectangle){x + 140, 112, 98, 22}, NULL, &place_layer, 0, arrlen(level->layers) - 1, false);
+        if (editor->layer != (uint32_t)place_layer) {
+            editor->layer = place_layer;
             editor_clear_selection(editor);
+            editor->tool = EDITOR_SELECT;
         }
-        editor_preview(editor->templates[index].sp, cell);
-        if (editor->brush == index) {
-            DrawRectangleLinesEx(cell, 2, YELLOW);
+        bool visible = level->layers[editor->layer].visible;
+        GuiCheckBox((Rectangle){x + 10, 149, 16, 16}, "Layer visible", &visible);
+        GuiCheckBox((Rectangle){x + 10, 180, 16, 16}, "Show Colliders", &editor->show_colliders);
+        if (visible != (bool)level->layers[editor->layer].visible) {
+            level->layers[editor->layer].visible = visible;
+            editor->saved = 0;
         }
-    }
-    float y = height - EDITOR_INSPECTOR_HEIGHT + 8;
-    GuiLine((Rectangle){x + 10, y, 230, 18}, NULL);
-    y += 20;
-    GuiLabel((Rectangle){x + 10, y, 220, 18},
-             TextFormat("Brush: %d  Selected: %d", editor->brush, arrlen(editor->selection)));
-    y += 22;
-    int index = editor_selected_index(editor, level);
-    if (index < 0) {
-        GuiLabel((Rectangle){x + 10, y, 225, 20},
-                 arrlen(editor->selection) > 1 ? "Group selected" : "Select an entity to edit");
-        return;
-    }
-    struct entity *e = &level->entities[index];
-    GuiLabel((Rectangle){x + 10, y, 225, 20}, TextFormat("ENTITY #%llu", (unsigned long long)e->id));
-    y += 28;
-    int entity_layer = e->layer;
-    GuiLabel((Rectangle){x + 10, y, 100, 20}, "Layer");
-    GuiSpinner((Rectangle){x + 140, y, 98, 22}, NULL, &entity_layer, 0, arrlen(level->layers) - 1, false);
-    if (entity_layer != (int)e->layer) {
-        e->layer = entity_layer;
-        editor->layer = entity_layer;
-        editor->saved = 0;
-    }
-    y += 29;
-    bool visible = e->is_visible;
-    bool solid = e->is_solid;
-    GuiCheckBox((Rectangle){x + 10, y, 16, 16}, "Visible", &visible);
-    GuiCheckBox((Rectangle){x + 130, y, 16, 16}, "Solid", &solid);
-    if (visible != e->is_visible || solid != e->is_solid) {
-        e->is_visible = visible;
-        if (solid && !arrlen(e->collider.vertices)) {
-            Rectangle bounds = entity_bounds(e, level->tile_size);
-            e->collider = physics_polygon_rectangle((Rectangle){0, 0, bounds.width, bounds.height});
-            solid = arrlen(e->collider.vertices) != 0;
+        GuiLabel((Rectangle){x + 10, 214, 225, 20}, "Tab: next layer  |  G: grid");
+    } else {
+        int index = editor_selected_index(editor, level);
+        GuiLabel((Rectangle){x + 10, 108, 225, 20}, TextFormat("Selected: %d", arrlen(editor->selection)));
+        if (index < 0) {
+            GuiLabel((Rectangle){x + 10, 140, 225, 20},
+                     arrlen(editor->selection) > 1 ? "Group selected" : "Select an entity to edit");
+            return;
         }
-        e->is_solid = solid;
-        editor->saved = 0;
-    }
-    y += 28;
-    int hp = e->health;
-    GuiLabel((Rectangle){x + 10, y, 100, 20}, "Health");
-    GuiSpinner((Rectangle){x + 140, y, 98, 22}, NULL, &hp, 0, INT32_MAX, false);
-    if (hp != e->health) {
-        e->health = hp;
-        editor->saved = 0;
-    }
-    y += 28;
-    int damage = (e->damage > INT32_MAX) ? INT32_MAX : (int)e->damage;
-    GuiLabel((Rectangle){x + 10, y, 100, 20}, "Damage");
-    int previous_damage = damage;
-    GuiSpinner((Rectangle){x + 140, y, 98, 22}, NULL, &damage, 0, INT32_MAX, false);
-    if (damage != previous_damage) {
-        e->damage = damage;
-        editor->saved = 0;
+        struct entity *e = &level->entities[index];
+        GuiLabel((Rectangle){x + 10, 141, 225, 20}, TextFormat("ENTITY #%llu", (unsigned long long)e->id));
+        int entity_layer = e->layer;
+        GuiLabel((Rectangle){x + 10, 177, 100, 20}, "Layer");
+        GuiSpinner((Rectangle){x + 140, 177, 98, 22}, NULL, &entity_layer, 0, arrlen(level->layers) - 1, false);
+        if (entity_layer != (int)e->layer) {
+            e->layer = entity_layer;
+            editor->layer = entity_layer;
+            editor->saved = 0;
+        }
+        bool visible = e->is_visible;
+        bool solid = e->is_solid;
+        GuiCheckBox((Rectangle){x + 10, 215, 16, 16}, "Visible", &visible);
+        GuiCheckBox((Rectangle){x + 130, 215, 16, 16}, "Solid", &solid);
+        if (visible != e->is_visible || solid != e->is_solid) {
+            e->is_visible = visible;
+            if (solid && !arrlen(e->collider.vertices)) {
+                Rectangle bounds = entity_bounds(e, level->tile_size);
+                e->collider = physics_polygon_rectangle((Rectangle){0, 0, bounds.width, bounds.height});
+                solid = arrlen(e->collider.vertices) != 0;
+            }
+            e->is_solid = solid;
+            editor->saved = 0;
+        }
+        int hp = e->health;
+        GuiLabel((Rectangle){x + 10, 250, 100, 20}, "Health");
+        GuiSpinner((Rectangle){x + 140, 250, 98, 22}, NULL, &hp, 0, INT32_MAX, false);
+        if (hp != e->health) {
+            e->health = hp;
+            editor->saved = 0;
+        }
+        int damage = (e->damage > INT32_MAX) ? INT32_MAX : (int)e->damage;
+        int previous_damage = damage;
+        GuiLabel((Rectangle){x + 10, 284, 100, 20}, "Damage");
+        GuiSpinner((Rectangle){x + 140, 284, 98, 22}, NULL, &damage, 0, INT32_MAX, false);
+        if (damage != previous_damage) {
+            e->damage = damage;
+            editor->saved = 0;
+        }
     }
 }

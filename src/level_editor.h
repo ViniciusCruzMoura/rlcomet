@@ -9,6 +9,8 @@ struct level_editor {
     bool enabled;
     bool grid;
     bool show_colliders;
+    bool sidebar_collapsed;
+    int sidebar_tab;
     uint32_t layer;
     uint32_t palette_start;
     int brush;

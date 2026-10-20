@@ -203,9 +203,12 @@ void entity_draw(const struct entity *s, float opacity)
         if (!tex.id) {
             return;
         }
+        float width = fabsf(sp.frame_rec.width * sp.scale.x);
+        float height = fabsf(sp.frame_rec.height * sp.scale.y);
         sp.texture_id = TEX_NO_TEXTURE;
         sp.frame_rec = (Rectangle){0, 0, tex.width, tex.height};
-        sp.scale = (Vector2){(float)GRID_SIZE / tex.width, (float)GRID_SIZE / tex.height};
+        sp.scale = (Vector2){width > 0 ? width / tex.width : 1.0f,
+                             height > 0 ? height / tex.height : 1.0f};
         sp.tint = WHITE;
     }
     sp.tint.a = (unsigned char)(sp.tint.a * opacity);
