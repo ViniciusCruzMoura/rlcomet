@@ -42,8 +42,6 @@ build/%.o: src/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE_PATHS) -c $< -o $@
 
-build/level.o: thirdparty/mpack/src/mpack/mpack.h
-
 build/libmpack.a: thirdparty/mpack/src/mpack/mpack.h $(wildcard $(MPACK_DIR)/*.c)
 	@mkdir -p build/mpack
 	@for src in $(MPACK_DIR)/*.c; do \
@@ -54,14 +52,14 @@ build/libmpack.a: thirdparty/mpack/src/mpack/mpack.h $(wildcard $(MPACK_DIR)/*.c
 executable$(EXE): $(OBJECTS) build/libmpack.a thirdparty/raylib/src/libraylib.a
 	$(CC) $(OBJECTS) build/libmpack.a -o $@ $(LDFLAGS)
 
-thirdparty/mpack/src/mpack/mpack.h:
-	git clone --branch v1.1.1 --depth 1 https://github.com/ludocode/mpack.git thirdparty/mpack
-
 thirdparty/raylib/src/libraylib.a: thirdparty/raylib/src
 	$(MAKE) -C $< PLATFORM=PLATFORM_DESKTOP
 
 thirdparty/raylib/src/Makefile:
 	git clone --branch 6.2 --depth 1 https://github.com/raysan5/raylib.git thirdparty/raylib
+
+thirdparty/mpack/src/mpack/mpack.h:
+	git clone --branch v1.1.1 --depth 1 https://github.com/ludocode/mpack.git thirdparty/mpack
 
 thirdparty: thirdparty/raylib/src/Makefile thirdparty/mpack/src/mpack/mpack.h
 
