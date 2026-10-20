@@ -13,6 +13,7 @@
 #define EDITOR_PANEL_WIDTH 250.0f
 #define EDITOR_TEMPLATE_CELL 36.0f
 #define EDITOR_INSPECTOR_HEIGHT 232.0f
+#define EDITOR_INACTIVE_OPACITY 0.4f
 
 static Rectangle entity_bounds(const struct entity *e, uint32_t tile_size)
 {
@@ -185,11 +186,21 @@ void level_editor_draw(const struct level_editor *editor, Camera2D camera)
                 if (!e->is_active || e->layer != (uint32_t)layer) {
                     continue;
                 }
-                entity_draw(e);
-                if (editor->enabled) {
+                float opacity = editor->enabled && (uint32_t)layer != editor->layer ? EDITOR_INACTIVE_OPACITY : 1.0f;
+                entity_draw(e, opacity);
+                if (editor->enabled && editor->show_colliders && arrlen(e->collider.vertices) >= 3) {
+                    Color color = Fade(e->is_solid ? ORANGE : PURPLE, opacity);
+                    for (int v = 0; v < arrlen(e->collider.vertices); ++v) {
+                        Vector2 a = e->collider.vertices[v];
+                        Vector2 b = e->collider.vertices[(v + 1) % arrlen(e->collider.vertices)];
+                        Vector2 p = {e->position.x + a.x, e->position.y + a.y};
+                        DrawLineV(p, (Vector2){e->position.x + b.x, e->position.y + b.y}, color);
+                        DrawCircleV(p, 1.5f, color);
+                    }
+                }
+                if (editor->enabled && editor->selected == i) {
                     Rectangle r = entity_bounds(e, level->tile_size);
-                    DrawRectangleLines((int)r.x, (int)r.y, (int)r.width, (int)r.height,
-                                       editor->selected == i ? YELLOW : e->is_solid ? ORANGE : e->is_visible ? SKYBLUE : PURPLE);
+                    DrawRectangleLinesEx(r, 1.0f, YELLOW);
                 }
             }
         }
@@ -228,6 +239,7 @@ void level_editor_gui(struct level_editor *editor)
     editor->layer = place_layer;
     bool layer_visible = level->layers[editor->layer].visible;
     GuiCheckBox((Rectangle){x + 10, 70, 16, 16}, "Layer visible", &layer_visible);
+    GuiCheckBox((Rectangle){x + 123, 70, 16, 16}, "Show Colliders", &editor->show_colliders);
     if (layer_visible != (bool)level->layers[editor->layer].visible) {
         level->layers[editor->layer].visible = layer_visible;
         editor->saved = 0;

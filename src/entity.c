@@ -191,7 +191,7 @@ void entity_update(struct entity *s)
     }
 }
 
-void entity_draw(const struct entity *s)
+void entity_draw(const struct entity *s, float opacity)
 {
     if (!s->is_active || !s->is_visible) {
         return;
@@ -208,5 +208,6 @@ void entity_draw(const struct entity *s)
         sp.scale = (Vector2){(float)GRID_SIZE / tex.width, (float)GRID_SIZE / tex.height};
         sp.tint = WHITE;
     }
+    sp.tint.a = (unsigned char)(sp.tint.a * opacity);
     sprite_draw(&sp, s->position);
 }

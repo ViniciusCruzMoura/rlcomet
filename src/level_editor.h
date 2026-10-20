@@ -8,6 +8,7 @@ struct level_editor {
     Camera2D camera;
     bool enabled;
     bool grid;
+    bool show_colliders;
     uint32_t layer;
     uint32_t palette_start;
     int brush;

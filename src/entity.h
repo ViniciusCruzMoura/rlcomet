@@ -56,7 +56,7 @@ struct entity entity_init(uint32_t type);
 struct entity entity_bullet_init(void);
 struct entity entity_copy(const struct entity *src);
 void entity_update(struct entity *s);
-void entity_draw(const struct entity *s);
+void entity_draw(const struct entity *s, float opacity);
 void entity_free(struct entity *o);
 
 // NOTE any object can have events related to 
