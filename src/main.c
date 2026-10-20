@@ -16,7 +16,7 @@ struct console cmd;
 struct game_state gs;
 RenderTexture2D screen;
 int menu_option;
-struct level_editor editor = {.grid = true, .selected = -1};
+struct level_editor editor = {.grid = true, .brush = -1, .vertex = -1};
 
 // TODO 202610031114 create a struct to store all flags
 static bool pmem_enabled = false;
@@ -34,6 +34,7 @@ int main(void)
     gs = game_init();
 
     InitWindow(gs.display_width, gs.display_height, "Comet");
+    SetExitKey(KEY_NULL);
     SetTargetFPS(gs.fps);
     if (!DirectoryExists(ASSETS_DIR)) {
         MakeDirectory(ASSETS_DIR);
@@ -110,6 +111,11 @@ int main(void)
         entity_free(&editor.templates[i]);
     }
     arrfree(editor.templates);
+    for (int i = 0; i < arrlen(editor.clipboard); ++i) {
+        entity_free(&editor.clipboard[i]);
+    }
+    arrfree(editor.clipboard);
+    arrfree(editor.selection);
     assets_free();
     UnloadRenderTexture(screen);
     CloseWindow();
@@ -162,7 +168,7 @@ uint32_t game_update(void)
                 } else {
                     assets_load();
                     gs.current_level = 0;
-                    editor.selected = -1;
+                    arrfree(editor.selection);
                     console_text_append(&cmd.trace, LT_INFO, sb_stringf("Level loaded: %s", ASSETS_FILE));
                 }
             }
@@ -182,7 +188,7 @@ uint32_t game_update(void)
                     level_add_layer(&next, LEVEL_FOREGROUND);
                     arrput(gs.levels, next);
                     gs.current_level = arrlen(gs.levels) - 1;
-                    editor.selected = -1;
+                    arrfree(editor.selection);
                 }
             }
             else if (strcmp(cmd.command, "editor") == 0) {

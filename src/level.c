@@ -10,7 +10,6 @@
 #define LEVEL_VERSION 7u
 #define LEVEL_MAX_ROWS 32u
 #define LEVEL_MAX_FRAMES 4096u
-#define LEVEL_MAX_POLYGON_VERTICES 256u
 
 static bool put32(FILE *f, uint32_t n)
 {

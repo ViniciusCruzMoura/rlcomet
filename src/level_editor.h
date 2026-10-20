@@ -12,7 +12,13 @@ struct level_editor {
     uint32_t layer;
     uint32_t palette_start;
     int brush;
-    int selected;
+    uint64_t *selection;
+    struct entity *clipboard;
+    int tool;
+    int drag_mode;
+    int vertex;
+    Vector2 drag_start;
+    Vector2 drag_current;
     int saved;
     struct entity *templates;
     struct level **levels;
